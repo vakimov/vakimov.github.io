@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head lang="ru">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+    <script>
+(function(memoryMatrix, $, undefined) {
+
+    memoryMatrix.size = {x: 4, y: 4};
+    memoryMatrix.tileNumber = 7;
+    memoryMatrix.showTimeDelay = 2000;
+
+    memoryMatrix.startGame = function() {
+        var $gameBoard = $('.game-board');
+        $gameBoard.empty();
+
+        var size = memoryMatrix.size;
+        var tileNumber = memoryMatrix.tileNumber;
+        var showTimeDelay = memoryMatrix.showTimeDelay;
+
+        // Draw game board
+        var tileMatrix = [];
+        var $table = $('<table></table>');
+        for (var i = 0; i < size.y; i++) {
+            var $row = $('<tr></tr>');
+            var row = [];
+            for (var j = 0; j < size.x; j++) {
+                var $cell = $('<td></td>');
+                var $tile = $('<div class="tile"></div>');
+                $cell.append($tile);
+                $row.append($cell);
+                row.push($tile);
+            }
+            $table.append($row);
+            tileMatrix.push(row);
+        }
+        $gameBoard.append($table);
+
+        // Get active tiles
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        var tileCoordinates = [];
+        for (var i = 0; i < size.y; i++) {
+            for (var j = 0; j < size.x; j++) {
+                tileCoordinates.push({x: j, y: i});
+            }
+        }
+        var activeTiles = [];
+        for (var i = 0; i < tileNumber; i++) {
+            var index = randomInt(0, tileCoordinates.length-1);
+            var tileCoord = tileCoordinates[index];
+            tileCoordinates.splice(index, 1);
+            activeTiles.push(tileMatrix[tileCoord.y][tileCoord.x]);
+        }
+        $.each(activeTiles, function() {
+            var $thisTile = $(this);
+            var $openedTile = $('<div class="opened-tile"></div>');
+            $openedTile.hide();
+            $thisTile.append($openedTile);
+        });
+        var $openedTiles = $gameBoard.find('.opened-tile');
+        //$openedTiles.show();
+
+        setTimeout(
+            function() {
+                $openedTiles.slideDown();
+            },
+            800
+        );
+
+        function checkIfWin() {
+            return $gameBoard.find('.opened-tile').length == $gameBoard.find('.opened-tile.opened').length;
+        }
+
+        setTimeout(
+            function() {
+                $openedTiles.slideUp();
+                $('.tile').click(function() {
+                    var $thisTile = $(this);
+                    var $openedTile = $thisTile.find('.opened-tile');
+                    if ($openedTile.length > 0) {
+                        $openedTile.append('<span class="glyphicon glyphicon-ok"></span>');
+                        $openedTile.addClass('opened');
+                        $openedTile.slideDown(400, function() {
+                            if (checkIfWin()) {
+                                var $modal = $('.modal');
+                                $modal.modal("show");
+                                //memoryMatrix.startGame();
+                            }
+                        });
+                    } else {
+                        $thisTile.append('<span class="glyphicon glyphicon-remove"></span>');
+                    }
+                });
+            },
+            showTimeDelay
+        );
+    }
+}( window.memoryMatrix = window.memoryMatrix || {}, jQuery ));
+$(document).ready(function() {
+    var $startGameBtn = $('.start-game-btn');
+
+    var $inputX = $('form.game-control-panel input[name="game-board-x"]');
+    var $inputY = $('form.game-control-panel input[name="game-board-y"]');
+    var $inputTileNumber = $('form.game-control-panel input[name="tile-number"]');
+    var $inputShowTimeDelay = $('form.game-control-panel input[name="show-time-delay"]');
+
+    function startGame() {
+        memoryMatrix.size = {
+            x: parseInt($inputX.val()),
+            y: parseInt($inputY.val())
+        };
+        memoryMatrix.tileNumber = parseInt($inputTileNumber.val());
+        memoryMatrix.showTimeDelay = parseInt($inputShowTimeDelay.val());
+
+        window.memoryMatrix.startGame();}
+
+    $startGameBtn.click(function(e) {
+        startGame();
+        e.preventDefault();
+    });
+
+    $('.harder-btn').click(function() {
+        var $modal = $('.modal');
+        $modal.modal('toggle');
+
+        var tileNumber = parseInt($inputTileNumber.val());
+        tileNumber++;
+        var size = {
+            x: parseInt($inputX.val()),
+            y: parseInt($inputY.val())
+        };
+        if (tileNumber > size.x * size.y * 0.6) {
+            if (size.x > size.y) { size.y++; } else { size.x++; }
+        }
+        $inputX.val(size.x);
+        $inputY.val(size.y);
+        $inputTileNumber.val(tileNumber);
+
+        startGame();
+    });
+
+    $('.try-again-btn').click(function() {
+        var $modal = $('.modal');
+        $modal.modal('toggle');
+        startGame();
+    });
+
+    $('.simplify-btn').click(function() {
+        var $modal = $('.modal');
+        $modal.modal('toggle');
+
+        var tileNumber = parseInt($inputTileNumber.val());
+        tileNumber--;
+        var size = {
+            x: parseInt($inputX.val()),
+            y: parseInt($inputY.val())
+        };
+        if (size.x > size.y) { size.x--; } else { size.y--; }
+        if (tileNumber <= size.x * size.y * 0.6) {
+            $inputX.val(size.x);
+            $inputY.val(size.y);
+        }
+        $inputTileNumber.val(tileNumber);
+
+        startGame();
+    });
+});
+    </script>
+    <style>
+        .tile {
+            width: 50px;
+            height: 50px;
+            background-color: saddlebrown;
+        }
+        .opened-tile {
+            width: 100%;
+            height: 100%;
+            background-color: deepskyblue;
+        }
+        .game-board {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .game-board table {
+            border-collapse: separate;
+        }
+        .game-board table, .game-board tr, .game-board td {
+            border: 2px solid;
+        }
+        form.game-control-panel input[name="tile-number"] {
+            width: 50px;
+        }
+        form.game-control-panel>.form-group>.input-group>input[name="game-board-x"], form.game-control-panel>.form-group>.input-group>input[name="game-board-y"] {
+            width: 45px;
+        }
+        form.game-control-panel input[name="show-time-delay"] {
+            width: 70px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <form class="form-inline game-control-panel" role="form">
+                    <div class="form-group">
+                        <label for="tile-number">Количество карточек</label>
+                        <input type="text" class="form-control" name="tile-number" id="tile-number" value="7">
+                    </div>
+                    <div class="form-group">
+                        <label for="game-board-x">Размер поля</label>
+                        <div class="input-group">
+                            <!--div class="input-group-addon">Размер поля</div-->
+                            <input class="form-control" type="text" name="game-board-x" id="game-board-x" value="4">
+                            <div class="input-group-addon">x</div>
+                            <input class="form-control" type="text" name="game-board-y" id="game-board-y" value="4">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="show-time-delay">Задержка в мс</label>
+                        <input type="text" class="form-control" name="show-time-delay" id="show-time-delay" value="2000">
+                    </div>
+                    <button type="submit" class="btn btn-default start-game-btn">Начать</button>
+                </form>
+            </div>
+            <div class="col-md-12">
+                <div class="game-board"></div>
+            </div>
+            <div class="modal fade">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span aria-hidden="true">&times;</span>
+                                <span class="sr-only">Close</span>
+                            </button>
+                            <h4 class="modal-title">Победа</h4>
+                        </div>
+                        <!--div class="modal-body">
+                            <p>Вы выиграли</p>
+                        </div-->
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary simplify-btn">Упростить</button>
+                            <button type="button" class="btn btn-primary try-again-btn">Повторить</button>
+                            <button type="button" class="btn btn-primary harder-btn">Усложнить</button>
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
+        </div>
+    </div>
+</body>
+</html>
